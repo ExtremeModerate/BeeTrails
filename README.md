@@ -8,7 +8,37 @@
 
 ## Steps
 1. Capture video - 4k at 30 or 60fps
-2. Transfer to your computer (obviously)
+2. Transfer to your computer (obviously) as a .MOV file
+
+### Make a direct set of trails
+This is the easiest approach that gives the full color image, plus white trails.  Vary the `decay=` value for longer/shorter tails, but 0.990-0.995 is pretty good.  The `planes=7` option only picks up differences in the white channel.
+
+`ffmpeg -i ORIGINAL.MOV -an -vf "format=yuv420p,lagfun=decay=0.995:planes=7" trails.mp4`
+
+to remove audio, include the `-an` flag
+
+### Extract difference frames from original
+If you just want black background with white trails
+
+`ffmpeg -i ORIGINAL.MOV -an -pix_fmt yuv420p -filter_complex "format=gbrp,tblend=all_mode=difference:all_opacity=1,format=yuv420p,lagfun=decay=0.995:planes=7" diff-trails.mp4`
+
+Or, if you want the steps, first create the diffs video
+
+`ffmpeg -i ORIGINAL.MOV -an -pix_fmt yuv420p -filter_complex "format=gbrp,tblend=all_mode=difference:all_opacity=1" diffs.mp4`
+
+then make trails from them
+
+`ffmpeg -i diffs.mp4 -vf "format=yuv420p,lagfun=decay=0.99:planes=7" diff-trails.mp4`
+
+## Scaling the results
+
+* `ffmpeg -i diff-trails.mp4 -s 1920x1080 -c:a copy diff-trails`
+* OR `ffmpeg -i diff-trails.mp4 -filter:v scale=1920:1080 -c:a copy diff-trails-1080.mp4`
+* OR just pick the width
+  * `ffmpeg -i diff-trails.mp4 -filter:v scale=1920:-1 -c:a copy diff-trails-1080.mp4`
+
+## OLD METHODS, Don't Bother
+
 3. Extract frame differences from the original
    * `ffmpeg -i IMG_1329.MOV -filter_complex "format=gbrp,tblend=all_mode=difference" output.mp4`
    * Note that this makes a broken video, so we extract the frames from this, then put them back together
